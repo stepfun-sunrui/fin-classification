@@ -38,6 +38,12 @@
   th.l1col{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line);font-size:11.5px;color:#cfe0ff;line-height:1.4;min-width:104px;max-width:118px;vertical-align:bottom}
   th.l1col .nt{display:block;color:var(--muted);font-size:10px;font-weight:400;margin-top:3px}
   th.totcol{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);min-width:64px}
+  th.sizecol{padding:10px 10px;text-align:left;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);min-width:180px}
+  td.sizecell{padding:8px 10px;border-bottom:1px solid rgba(42,63,122,.35);border-left:1px solid rgba(42,63,122,.25)}
+  .sizebar-wrap{display:flex;align-items:center;gap:8px}
+  .sizebar{height:16px;border-radius:3px;display:flex;overflow:hidden;min-width:2px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+  .sizebar .seg{height:100%;display:inline-block}
+  .sizeval{font-size:12px;font-weight:700;color:var(--gold);white-space:nowrap;min-width:34px}
 
   tbody td.rolecell{position:sticky;left:0;z-index:1;background:#0b1538;padding:9px 14px;border-right:1px solid var(--line);border-bottom:1px solid rgba(42,63,122,.4);white-space:nowrap}
   tbody td.rolecell .rn{font-weight:600}
@@ -93,9 +99,14 @@
   <span><i class="dot" style="background:var(--risk)"></i>风控合规</span>
   <span><i class="dot" style="background:var(--ops)"></i>中后台·运营</span>
 </div>
+<div class="legend" id="l1legend" style="margin-top:-2px">
+  <span style="color:var(--gold)">覆盖资产规模条形按大类着色：</span>
+</div>
+<div style="font-size:11.5px;color:var(--muted);margin:-2px 0 10px;line-height:1.6" id="sizenote"></div>
 
 <div class="toolbar">
   <input id="search" type="text" placeholder="搜索岗位/机构（如：交易员、基金经理、风控）…">
+  <button id="sortSize" style="background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:13px">↕ 按覆盖规模排序</button>
   <div class="scale">覆盖广度 少
     <span class="sw"><i style="background:rgba(245,197,66,.12)"></i><i style="background:rgba(245,197,66,.3)"></i><i style="background:rgba(245,197,66,.55)"></i><i style="background:rgba(245,197,66,.82)"></i></span>
     多</div>
@@ -117,6 +128,10 @@ const M = window.MATRIX_DATA;
 document.getElementById('subtitle').textContent = M.subtitle;
 const L1S = M.l1_names;
 const FUNC_COLOR = {'卖方研究':'--sell','买方研究·投资':'--buy','交易执行':'--trade','风控合规':'--risk','中后台·运营':'--ops'};
+// L1 大类配色（与资产规模tab一致）
+const L1_PALETTE = ['#f5c542','#4fb0ff','#5be0c0','#c98bff','#ff8fab','#7ee081'];
+const l1color = {};
+L1S.forEach((l1,i)=> l1color[l1] = L1_PALETTE[i % L1_PALETTE.length]);
 
 // 最大覆盖数(用于颜色归一)
 let maxN = 1;
@@ -133,22 +148,10 @@ const tbl = document.getElementById('mtx');
 // header
 let head = '<thead><tr><th class="corner">岗位（标准化）</th>';
 L1S.forEach(l1=>{ head += `<th class="l1col">${l1}</th>`; });
-head += '<th class="totcol">合计<br>子类</th></tr></thead>';
+head += '<th class="totcol">合计<br>子类</th><th class="sizecol">覆盖资产规模<br><span style="font-weight:400">万亿元</span></th></tr></thead>';
 tbl.innerHTML = head;
 
-const tbody = document.createElement('tbody');
-let curFunc = null;
-M.rows.forEach(r=>{
-  if(r.func !== curFunc){
-    curFunc = r.func;
-    const sep = document.createElement('tr');
-    sep.className='func-sep';
-    sep.innerHTML = `<td colspan="${L1S.length+2}"><span class="fdot" style="background:var(${FUNC_COLOR[curFunc]})"></span>${curFunc}</td>`;
-    tbody.appendChild(sep);
-  }
-  const tr = document.createElement('tr');
-  tr.className='mrow';
-  tr.dataset.search = (r.role+' '+r.orgs.join(' ')+' '+(r.raw||[]).join(' ')).toLowerCase();
+function rowHTML(r){
   let cells = `<td class="rolecell"><span class="rn">${r.role}</span><span class="orgs">${r.orgs.join(' · ')}</span></td>`;
   L1S.forEach(l1=>{
     const cov = r.l1cover[l1]||[];
@@ -161,10 +164,67 @@ M.rows.forEach(r=>{
     }
   });
   cells += `<td class="tot"><span class="b">${r.n_l2}</span> / ${r.n_l1}大类</td>`;
-  tr.innerHTML = cells;
-  tbody.appendChild(tr);
-});
-tbl.appendChild(tbody);
+  // 覆盖资产规模：分段堆叠迷你条形（按L1上色）+ 数值
+  const w = Math.max(2, r.coverSize / M.maxCoverSize * 100);
+  let segs = '';
+  L1S.forEach(l1=>{
+    const sz = (r.l1size && r.l1size[l1]) || 0;
+    if(sz>0){
+      const segW = sz / r.coverSize * 100;
+      segs += `<span class="seg" style="width:${segW}%;background:${l1color[l1]}" title="${l1}: ${sz}万亿"></span>`;
+    }
+  });
+  cells += `<td class="sizecell">
+      <div class="sizebar-wrap">
+        <div class="sizebar" style="width:${w}%">${segs}</div>
+        <span class="sizeval">${r.coverSize>=100?Math.round(r.coverSize):r.coverSize}</span>
+      </div>
+    </td>`;
+  return cells;
+}
+
+let curMode = 'func'; // 'func' 分组 | 'size' 按覆盖规模排序
+function renderBody(mode){
+  curMode = mode;
+  const tbody = document.createElement('tbody');
+  if(mode==='size'){
+    [...M.rows].sort((a,b)=>b.coverSize-a.coverSize).forEach(r=>{
+      const tr=document.createElement('tr'); tr.className='mrow';
+      tr.dataset.search=(r.role+' '+r.orgs.join(' ')+' '+(r.raw||[]).join(' ')).toLowerCase();
+      tr.innerHTML=rowHTML(r); tbody.appendChild(tr);
+    });
+  } else {
+    let curFunc=null;
+    M.rows.forEach(r=>{
+      if(r.func!==curFunc){
+        curFunc=r.func;
+        const sep=document.createElement('tr'); sep.className='func-sep';
+        sep.innerHTML=`<td colspan="${L1S.length+3}"><span class="fdot" style="background:var(${FUNC_COLOR[curFunc]})"></span>${curFunc}</td>`;
+        tbody.appendChild(sep);
+      }
+      const tr=document.createElement('tr'); tr.className='mrow';
+      tr.dataset.search=(r.role+' '+r.orgs.join(' ')+' '+(r.raw||[]).join(' ')).toLowerCase();
+      tr.innerHTML=rowHTML(r); tbody.appendChild(tr);
+    });
+  }
+  const old=tbl.querySelector('tbody'); if(old) old.remove();
+  tbl.appendChild(tbody);
+}
+renderBody('func');
+
+// L1 颜色图例
+const l1leg=document.getElementById('l1legend');
+L1S.forEach(l1=>{ l1leg.innerHTML+=`<span><i class="dot" style="background:${l1color[l1]}"></i>${l1}</span>`; });
+// 规模口径说明
+document.getElementById('sizenote').textContent = M.scaleNote || '';
+
+// 排序按钮
+const sortBtn=document.getElementById('sortSize');
+sortBtn.onclick=()=>{
+  if(curMode==='func'){ renderBody('size'); sortBtn.textContent='↕ 恢复职能分组'; sortBtn.style.color='var(--gold)'; }
+  else { renderBody('func'); sortBtn.textContent='↕ 按覆盖规模排序'; sortBtn.style.color='var(--text)'; }
+  search.value=''; // 清空搜索避免状态错乱
+};
 
 // stats in subtitle area already; add count
 document.title = `岗位×资产矩阵 · ${M.rows.length}个标准岗位`;
