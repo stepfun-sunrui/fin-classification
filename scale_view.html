@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中国金融资产规模概览</title>
+<style>
+  :root{
+    --bg:#0a1230; --panel:#10204f; --panel2:#16285e;
+    --line:#2a3f7a; --gold:#f5c542; --text:#e8eefc; --muted:#8ea3d6;
+    --c1:#f5c542; --c2:#4fb0ff; --c3:#5be0c0; --c4:#c98bff; --c5:#ff8fab; --c6:#7ee081;
+    --exact:#5be0c0; --estimate:#f5b942;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    background:linear-gradient(160deg,#070d24,#0a1230 40%,#0b1538);color:var(--text);padding:0 0 80px}
+  .tabs{position:sticky;top:0;z-index:20;display:flex;gap:4px;padding:14px 32px 0;background:rgba(7,13,36,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs a{padding:10px 16px;border-radius:9px 9px 0 0;font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s}
+  .tabs a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .tabs a.active{color:var(--gold);background:var(--panel);border-color:var(--line)}
+
+  .wrap{padding:24px 32px}
+  header h1{font-size:23px;margin:0 0 4px;letter-spacing:1px}
+  header h1 .en{color:var(--gold);font-size:12px;letter-spacing:3px;text-transform:uppercase;display:block;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin:8px 0 12px;max-width:1060px;line-height:1.6}
+  .disclaimer{background:rgba(255,143,171,.08);border:1px solid rgba(255,143,171,.32);border-radius:10px;padding:11px 15px;margin-bottom:14px;font-size:12px;line-height:1.6;color:#ffd8e1}
+  .disclaimer b{color:#ff8fab}
+  .asof{background:rgba(91,224,192,.07);border:1px solid rgba(91,224,192,.28);border-radius:10px;padding:9px 15px;margin-bottom:18px;font-size:12px;line-height:1.6;color:#cdeee6}
+
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  .toolbar button{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:13px}
+  .toolbar button:hover{background:#1d306e;border-color:var(--gold)}
+  .toolbar button.on{background:#26407e;border-color:var(--gold);color:var(--gold)}
+  .legend{margin-left:auto;display:flex;gap:14px;font-size:11.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .tg{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  /* L1 headline cards */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+  .card{border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:linear-gradient(135deg,#15225a,#0e1840);position:relative;overflow:hidden}
+  .card .cn{font-size:13px;font-weight:700;margin-bottom:8px}
+  .card .hv{font-size:24px;font-weight:800;letter-spacing:.5px}
+  .card .hv .u{font-size:12px;font-weight:600;color:var(--muted);margin-left:3px}
+  .card .hl{font-size:11px;color:var(--muted);margin-top:3px}
+  .card .bar{position:absolute;left:0;bottom:0;height:3px}
+
+  /* bar chart */
+  .section-title{font-size:15px;font-weight:700;margin:6px 0 12px;color:var(--gold);display:flex;align-items:center;gap:8px}
+  .barrow{display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid rgba(42,63,122,.3)}
+  .barrow .lbl{width:230px;flex:0 0 230px;font-size:12.5px;display:flex;align-items:center;gap:7px}
+  .barrow .lbl .l1tag{font-size:9.5px;padding:1px 6px;border-radius:4px;color:#0a1230;font-weight:700;flex:0 0 auto}
+  .barrow .lbl .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .barwrap{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+  .bar2{height:20px;border-radius:4px;min-width:2px;transition:.3s;position:relative}
+  .bar2.estimate{background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,.18) 4px,rgba(0,0,0,.18) 8px)}
+  .barval{font-size:12px;font-weight:700;white-space:nowrap}
+  .barval .ti{font-size:10px;font-weight:400;margin-left:4px}
+  .ti.exact{color:var(--exact)}.ti.estimate{color:var(--estimate)}
+  .hidden{display:none!important}
+
+  /* detail table */
+  details.tbl{margin-top:26px;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  details.tbl>summary{padding:12px 16px;font-size:13px;color:var(--gold);cursor:pointer;background:rgba(255,255,255,.02)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead th{text-align:left;padding:9px 12px;color:var(--muted);border-bottom:1px solid var(--line);font-size:11px;background:#0e1840;position:sticky;top:0}
+  tbody td{padding:9px 12px;border-bottom:1px solid rgba(42,63,122,.35);vertical-align:top;line-height:1.5}
+  tbody tr:hover{background:rgba(255,255,255,.02)}
+  .num{text-align:right;font-weight:700;white-space:nowrap}
+  .tier-badge{font-size:10px;padding:1px 7px;border-radius:5px;white-space:nowrap}
+  .tier-badge.exact{background:rgba(91,224,192,.14);color:var(--exact);border:1px solid rgba(91,224,192,.4)}
+  .tier-badge.estimate{background:rgba(245,185,66,.14);color:var(--estimate);border:1px solid rgba(245,185,66,.4)}
+  .src{color:var(--muted);font-size:11px}
+  .note-c{color:#9fb0d8;font-size:11px}
+  footer{margin-top:24px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
+  code{background:#0c1738;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--c3)}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <a href="index.html">📊 资产分类树（5级）</a>
+  <a href="valuation_checklist.html">🧮 估值与风险分析清单</a>
+  <a href="roles_map.html">👥 岗位映射</a>
+  <a href="matrix_view.html">🔀 岗位×资产矩阵</a>
+  <a href="scale_view.html" class="active">📈 资产规模</a>
+</div>
+
+<div class="wrap">
+<header>
+  <h1><span class="en">China Financial Assets · Scale Overview</span>中国金融资产规模概览</h1>
+</header>
+<p class="sub" id="subtitle"></p>
+<div class="disclaimer" id="disclaimer"></div>
+<div class="asof" id="asof"></div>
+
+<div class="cards" id="cards"></div>
+
+<div class="toolbar">
+  <button id="sortSize" class="on">按规模排序</button>
+  <button id="sortCat">按大类分组</button>
+  <div class="legend">
+    <span><i class="tg" style="background:var(--exact)"></i>精确统计</span>
+    <span><i class="tg estimate" style="background:var(--estimate);background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,.25) 3px,rgba(0,0,0,.25) 6px)"></i>合理估算（斜纹）</span>
+  </div>
+</div>
+
+<div class="section-title"><span id="chartTitle">28 个 L2 子类 · 按规模排序</span></div>
+<div id="chart"></div>
+
+<details class="tbl">
+  <summary>📋 完整数据表（含数据时点 / 来源 / 口径说明）</summary>
+  <div style="overflow-x:auto">
+    <table id="dataTable">
+      <thead><tr>
+        <th>L1 大类</th><th>L2 子类</th><th class="num">规模(万亿)</th><th>时点</th><th>口径</th><th>数据来源</th><th>说明</th>
+      </tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</details>
+
+<footer>
+  <div>数据文件：<code>scale_data.js</code>。数据来自央行金融统计、中债登/上清所、沪深北交易所、基金业协会、金融监管总局等，经多源交叉核实。</div>
+  <div><b style="color:#ff8fab">口径提示</b>：货币/信贷/存款/社融/债券为精确官方统计；保险/衍生品/非标/另类等多为合理估算。各项因口径重叠不可简单加总。</div>
+</footer>
+</div>
+
+<script src="scale_data.js"></script>
+<script>
+const S = window.SCALE_DATA;
+const C1COLORS = ['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)'];
+document.getElementById('subtitle').textContent = S.subtitle;
+document.getElementById('disclaimer').innerHTML = '<b>⚠ 不可加总：</b>'+S.disclaimer;
+document.getElementById('asof').innerHTML = '🕐 '+S.asof_note;
+
+// L1 color map
+const l1color = {};
+S.categories.forEach((c,i)=> l1color[c.name]=C1COLORS[i]);
+
+// headline cards
+const cards = document.getElementById('cards');
+S.categories.forEach((c,i)=>{
+  const d=document.createElement('div');d.className='card';
+  d.innerHTML = `<div class="cn" style="color:${C1COLORS[i]}">${c.name}</div>
+    <div class="hv">${c.headline.value}<span class="u">万亿</span></div>
+    <div class="hl">${c.headline.label} · ${c.headline.asof}</div>
+    <div class="bar" style="width:100%;background:${C1COLORS[i]}"></div>`;
+  cards.appendChild(d);
+});
+
+// flatten L2
+let items=[];
+S.categories.forEach(c=> c.l2.forEach(l2=> items.push({...l2, l1:c.name, color:l1color[c.name]})));
+const maxV = Math.max(...items.map(x=>x.value));
+
+const chart=document.getElementById('chart');
+function renderChart(mode){
+  let arr=[...items];
+  if(mode==='size') arr.sort((a,b)=>b.value-a.value);
+  // 按大类分组时保持原顺序
+  chart.innerHTML = arr.map(it=>{
+    const w = Math.max(0.8, it.value/maxV*100);
+    const tierLabel = it.tier==='exact'?'精确':'估算';
+    return `<div class="barrow" data-name="${it.name}">
+      <div class="lbl"><span class="l1tag" style="background:${it.color}">${it.l1.slice(0,2)}</span><span class="nm" title="${it.name}">${it.name}</span></div>
+      <div class="barwrap">
+        <div class="bar2 ${it.tier}" style="width:${w}%;background:${it.color}"></div>
+        <div class="barval">${it.value}<span class="ti ${it.tier}">${tierLabel}·${it.asof}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+renderChart('size');
+
+document.getElementById('sortSize').onclick=function(){
+  this.classList.add('on');document.getElementById('sortCat').classList.remove('on');
+  document.getElementById('chartTitle').textContent='28 个 L2 子类 · 按规模排序';
+  renderChart('size');
+};
+document.getElementById('sortCat').onclick=function(){
+  this.classList.add('on');document.getElementById('sortSize').classList.remove('on');
+  document.getElementById('chartTitle').textContent='28 个 L2 子类 · 按大类分组';
+  renderChart('cat');
+};
+
+// data table
+const tb=document.querySelector('#dataTable tbody');
+S.categories.forEach(c=>{
+  c.l2.forEach((l2,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML = `
+      <td style="color:${l1color[c.name]};font-weight:600">${idx===0?c.name:''}</td>
+      <td>${l2.name}</td>
+      <td class="num">${l2.value}</td>
+      <td>${l2.asof}</td>
+      <td><span class="tier-badge ${l2.tier}">${l2.tier==='exact'?'精确统计':'合理估算'}</span></td>
+      <td class="src">${l2.source}</td>
+      <td class="note-c">${l2.note||''}</td>`;
+    tb.appendChild(tr);
+  });
+});
+</script>
+</body>
+</html>

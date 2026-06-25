@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>岗位 → 资产覆盖矩阵（反向视图）</title>
+<style>
+  :root{
+    --bg:#0a1230; --panel:#10204f; --panel2:#16285e;
+    --line:#2a3f7a; --gold:#f5c542; --text:#e8eefc; --muted:#8ea3d6;
+    --sell:#4fb0ff; --buy:#5be0c0; --trade:#f5c542; --risk:#ff8fab; --ops:#c98bff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    background:linear-gradient(160deg,#070d24,#0a1230 40%,#0b1538);color:var(--text);padding:0 0 80px}
+  .tabs{position:sticky;top:0;z-index:20;display:flex;gap:4px;padding:14px 32px 0;background:rgba(7,13,36,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .tabs a{padding:10px 18px;border-radius:9px 9px 0 0;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s}
+  .tabs a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .tabs a.active{color:var(--gold);background:var(--panel);border-color:var(--line)}
+
+  .wrap{padding:24px 32px}
+  header h1{font-size:23px;margin:0 0 4px;letter-spacing:1px}
+  header h1 .en{color:var(--gold);font-size:12px;letter-spacing:3px;text-transform:uppercase;display:block;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin:8px 0 14px;max-width:1060px;line-height:1.6}
+  .keynote{background:rgba(245,197,66,.07);border:1px solid rgba(245,197,66,.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:12.5px;line-height:1.7;color:#d8e2fb}
+  .keynote b{color:var(--gold)}
+
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .toolbar input{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px;min-width:240px}
+  .toolbar .scale{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted)}
+  .scale .sw{display:flex;gap:3px}
+  .scale .sw i{width:18px;height:12px;border-radius:2px;display:inline-block}
+
+  .matrix-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:760px}
+  thead th{position:sticky;top:0;background:#0e1840;z-index:2}
+  th.corner{position:sticky;left:0;z-index:5;background:#0e1840;text-align:left;padding:12px 14px;min-width:230px;border-bottom:1px solid var(--line);border-right:1px solid var(--line)}
+  th.l1col{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line);font-size:11.5px;color:#cfe0ff;line-height:1.4;min-width:104px;max-width:118px;vertical-align:bottom}
+  th.l1col .nt{display:block;color:var(--muted);font-size:10px;font-weight:400;margin-top:3px}
+  th.totcol{padding:10px 8px;text-align:center;border-bottom:1px solid var(--line);font-size:11px;color:var(--muted);min-width:64px}
+
+  tbody td.rolecell{position:sticky;left:0;z-index:1;background:#0b1538;padding:9px 14px;border-right:1px solid var(--line);border-bottom:1px solid rgba(42,63,122,.4);white-space:nowrap}
+  tbody td.rolecell .rn{font-weight:600}
+  tbody td.rolecell .orgs{display:block;color:var(--muted);font-size:10px;margin-top:2px;max-width:220px;white-space:normal;line-height:1.4}
+  tbody tr:hover td.rolecell{background:#13245c}
+  td.cell{text-align:center;border-bottom:1px solid rgba(42,63,122,.35);border-left:1px solid rgba(42,63,122,.25);height:40px;cursor:default;position:relative}
+  td.cell .v{font-weight:700;font-size:13px}
+  td.cell.empty{color:#33406a}
+  td.tot{text-align:center;color:var(--muted);font-weight:600;border-bottom:1px solid rgba(42,63,122,.35)}
+  td.tot .b{color:var(--gold)}
+
+  .func-sep td{background:rgba(255,255,255,.02);font-weight:700;color:var(--text);padding:8px 14px;font-size:12px;letter-spacing:1px;position:sticky;left:0}
+  .func-sep .fdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+
+  /* tooltip */
+  .cell:hover .tip{display:block}
+  .tip{display:none;position:absolute;left:50%;top:100%;transform:translateX(-50%);background:#0c1738;border:1px solid var(--gold);border-radius:8px;padding:8px 11px;font-size:11.5px;color:#dde;white-space:normal;width:200px;z-index:30;text-align:left;line-height:1.6;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:0 0 10px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  .hidden{display:none!important}
+  mark{background:rgba(245,197,66,.4);color:#fff;border-radius:3px;padding:0 2px}
+  footer{margin-top:22px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
+  code{background:#0c1738;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--buy)}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <a href="index.html">📊 资产分类树（5级）</a>
+  <a href="valuation_checklist.html">🧮 估值与风险分析清单</a>
+  <a href="roles_map.html">👥 岗位映射</a>
+  <a href="matrix_view.html" class="active">🔀 岗位×资产矩阵</a>
+  <a href="scale_view.html">📈 资产规模</a>
+</div>
+
+<div class="wrap">
+<header>
+  <h1><span class="en">Role × Asset · Coverage Matrix</span>岗位 → 资产覆盖矩阵（反向视图）</h1>
+</header>
+<p class="sub" id="subtitle"></p>
+
+<div class="keynote">
+  <b>读法：行=岗位，列=6大资产类别。</b>格内数字 = 该岗位在该大类下覆盖的 <b>L2 子类数</b>，颜色越深=覆盖越广。
+  同名岗位已按<b>标准岗位</b>归并（如散落在各债权子类的交易员合并为「固收/货币交易员」）。
+  规律一目了然：<b style="color:var(--ops)">中后台·运营</b>类岗位横跨全部 6 大类（资产无关的通用职能），
+  而<b style="color:var(--buy)">前台投研</b>按资产高度专精——这正是“为什么换资产类别时，投研要重新招人，但清算估值不用”。
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:var(--sell)"></i>卖方研究</span>
+  <span><i class="dot" style="background:var(--buy)"></i>买方研究·投资</span>
+  <span><i class="dot" style="background:var(--trade)"></i>交易执行</span>
+  <span><i class="dot" style="background:var(--risk)"></i>风控合规</span>
+  <span><i class="dot" style="background:var(--ops)"></i>中后台·运营</span>
+</div>
+
+<div class="toolbar">
+  <input id="search" type="text" placeholder="搜索岗位/机构（如：交易员、基金经理、风控）…">
+  <div class="scale">覆盖广度 少
+    <span class="sw"><i style="background:rgba(245,197,66,.12)"></i><i style="background:rgba(245,197,66,.3)"></i><i style="background:rgba(245,197,66,.55)"></i><i style="background:rgba(245,197,66,.82)"></i></span>
+    多</div>
+</div>
+
+<div class="matrix-wrap">
+  <table id="mtx"></table>
+</div>
+
+<footer>
+  <div>数据文件：<code>matrix_data.js</code>（<code>window.MATRIX_DATA</code>），由 <code>roles_data.js</code> 聚合而来。鼠标悬停格子可看具体覆盖了哪些 L2 子类。</div>
+  <div>归并采用标准岗位字典，颗粒度可调；如需更细/更粗的岗位划分，告诉我调整聚合规则即可。</div>
+</footer>
+</div>
+
+<script src="matrix_data.js"></script>
+<script>
+const M = window.MATRIX_DATA;
+document.getElementById('subtitle').textContent = M.subtitle;
+const L1S = M.l1_names;
+const FUNC_COLOR = {'卖方研究':'--sell','买方研究·投资':'--buy','交易执行':'--trade','风控合规':'--risk','中后台·运营':'--ops'};
+
+// 最大覆盖数(用于颜色归一)
+let maxN = 1;
+M.rows.forEach(r=>L1S.forEach(l1=>{const n=(r.l1cover[l1]||[]).length; if(n>maxN)maxN=n;}));
+
+function cellColor(n){
+  if(!n) return 'transparent';
+  const t = n/maxN; // 0..1
+  const a = 0.12 + t*0.72;
+  return `rgba(245,197,66,${a.toFixed(2)})`;
+}
+
+const tbl = document.getElementById('mtx');
+// header
+let head = '<thead><tr><th class="corner">岗位（标准化）</th>';
+L1S.forEach(l1=>{ head += `<th class="l1col">${l1}</th>`; });
+head += '<th class="totcol">合计<br>子类</th></tr></thead>';
+tbl.innerHTML = head;
+
+const tbody = document.createElement('tbody');
+let curFunc = null;
+M.rows.forEach(r=>{
+  if(r.func !== curFunc){
+    curFunc = r.func;
+    const sep = document.createElement('tr');
+    sep.className='func-sep';
+    sep.innerHTML = `<td colspan="${L1S.length+2}"><span class="fdot" style="background:var(${FUNC_COLOR[curFunc]})"></span>${curFunc}</td>`;
+    tbody.appendChild(sep);
+  }
+  const tr = document.createElement('tr');
+  tr.className='mrow';
+  tr.dataset.search = (r.role+' '+r.orgs.join(' ')+' '+(r.raw||[]).join(' ')).toLowerCase();
+  let cells = `<td class="rolecell"><span class="rn">${r.role}</span><span class="orgs">${r.orgs.join(' · ')}</span></td>`;
+  L1S.forEach(l1=>{
+    const cov = r.l1cover[l1]||[];
+    const n = cov.length;
+    if(n){
+      cells += `<td class="cell" style="background:${cellColor(n)}"><span class="v">${n}</span>`+
+               `<div class="tip"><b>${r.role}</b> · ${l1}<br>覆盖 ${n} 个子类：<br>${cov.join('、')}</div></td>`;
+    } else {
+      cells += `<td class="cell empty">·</td>`;
+    }
+  });
+  cells += `<td class="tot"><span class="b">${r.n_l2}</span> / ${r.n_l1}大类</td>`;
+  tr.innerHTML = cells;
+  tbody.appendChild(tr);
+});
+tbl.appendChild(tbody);
+
+// stats in subtitle area already; add count
+document.title = `岗位×资产矩阵 · ${M.rows.length}个标准岗位`;
+
+// search
+const search=document.getElementById('search');
+search.oninput=()=>{
+  const q=search.value.trim().toLowerCase();
+  document.querySelectorAll('tr.mrow').forEach(tr=>{
+    const hit = !q || tr.dataset.search.includes(q);
+    tr.classList.toggle('hidden',!hit);
+    const rc=tr.querySelector('.rolecell .rn');
+    rc.innerHTML = rc.textContent.replace(/<\/?mark>/g,'');
+    if(q&&hit) rc.innerHTML = rc.textContent.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'),'<mark>$1</mark>');
+  });
+  // 隐藏空的func分隔行
+  document.querySelectorAll('tr.func-sep').forEach(sep=>{
+    let n=sep.nextElementSibling, vis=false;
+    while(n && !n.classList.contains('func-sep')){ if(n.classList.contains('mrow')&&!n.classList.contains('hidden'))vis=true; n=n.nextElementSibling; }
+    sep.classList.toggle('hidden',!vis);
+  });
+};
+</script>
+</body>
+</html>

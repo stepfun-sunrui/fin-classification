@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>广义金融资产分类 · 5级树状结构 Review</title>
+<style>
+  :root{
+    --bg:#0a1230; --panel:#10204f; --panel2:#16285e;
+    --line:#2a3f7a; --gold:#f5c542; --text:#e8eefc; --muted:#8ea3d6;
+    --l1:#f5c542; --l2:#4fb0ff; --l3:#5be0c0; --l4:#c98bff; --l5:#ff8fab;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    background:linear-gradient(160deg,#070d24,#0a1230 40%,#0b1538); color:var(--text);
+    padding:0 0 80px;
+  }
+  .tabs a:hover{color:var(--text)!important}
+  header h1{font-size:24px;margin:0;letter-spacing:1px}
+  header h1 .en{color:var(--gold);font-size:13px;letter-spacing:3px;text-transform:uppercase;display:block;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin:10px 0 18px;max-width:1000px;line-height:1.6}
+
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .toolbar button{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:13px;transition:.15s}
+  .toolbar button:hover{background:#1d306e;border-color:var(--gold)}
+  .toolbar input{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px;min-width:260px}
+  .stats{margin-left:auto;color:var(--muted);font-size:12.5px}
+  .stats b{color:var(--text)}
+
+  .tree{margin-top:6px}
+  details{margin:1px 0}
+  summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:9px;padding:6px 11px;border-radius:8px;border:1px solid transparent;transition:.12s}
+  summary::-webkit-details-marker{display:none}
+  summary:hover{background:rgba(255,255,255,.04);border-color:var(--line)}
+  .twirl{width:13px;display:inline-block;color:var(--muted);transition:transform .15s;flex:0 0 13px;text-align:center;font-size:11px}
+  details[open]>summary .twirl{transform:rotate(90deg)}
+  .leaf .twirl{visibility:hidden}
+  .badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;flex:0 0 auto;letter-spacing:.5px}
+  .name{font-weight:600}
+  .note{color:var(--muted);font-size:12px;font-weight:400;margin-left:4px}
+  .kids-count{color:var(--muted);font-size:11px;margin-left:5px}
+  .children{margin-left:20px;border-left:1px dashed var(--line);padding-left:9px}
+
+  .scale-badge{font-size:10.5px;font-weight:700;padding:1px 8px;border-radius:10px;margin-left:8px;letter-spacing:.3px}
+  .scale-badge.l1{background:rgba(245,197,66,.18);color:var(--gold);border:1px solid rgba(245,197,66,.5)}
+  .scale-badge.exact{background:rgba(91,224,192,.13);color:#5be0c0;border:1px solid rgba(91,224,192,.4)}
+  .scale-badge.estimate{background:rgba(245,185,66,.1);color:#f5b942;border:1px dashed rgba(245,185,66,.5)}
+
+  .lv1>summary .badge{background:rgba(245,197,66,.16);color:var(--l1);border:1px solid rgba(245,197,66,.4)}
+  .lv2>summary .badge{background:rgba(79,176,255,.14);color:var(--l2);border:1px solid rgba(79,176,255,.4)}
+  .lv3>summary .badge{background:rgba(91,224,192,.14);color:var(--l3);border:1px solid rgba(91,224,192,.4)}
+  .lv4>summary .badge,.lv4 .badge{background:rgba(201,139,255,.14);color:var(--l4);border:1px solid rgba(201,139,255,.4)}
+  .lv5 .badge{background:rgba(255,143,171,.14);color:var(--l5);border:1px solid rgba(255,143,171,.4)}
+  .lv1>summary .name{font-size:16px}
+  .lv2>summary .name{font-size:14.5px}
+
+  .root-card{background:linear-gradient(135deg,#15225a,#0e1840);border:1px solid var(--gold);border-radius:12px;padding:13px 18px;margin-bottom:10px;display:inline-flex;flex-direction:column;gap:2px;box-shadow:0 0 30px rgba(245,197,66,.12)}
+  .root-card .t{font-size:18px;font-weight:700;color:var(--gold)}
+  .root-card .d{font-size:12px;color:var(--muted)}
+
+  .hidden{display:none !important}
+  mark{background:rgba(245,197,66,.35);color:#fff;border-radius:3px;padding:0 2px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:10px 0 4px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:9px;height:9px;border-radius:50%}
+
+  details.issues{margin-top:26px;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.02)}
+  details.issues>summary{font-size:13px;color:var(--gold);padding:11px 14px}
+  details.issues ol{margin:0 0 12px;padding:0 18px 0 34px;color:var(--muted);font-size:12.5px;line-height:1.7}
+  footer{margin-top:24px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
+  code{background:#0c1738;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--l3)}
+  .err{color:#ff8fab}
+</style>
+</head>
+<body>
+<div class="tabs" style="position:sticky;top:0;z-index:20;display:flex;gap:4px;padding:14px 32px 0;background:rgba(7,13,36,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)">
+  <a href="index.html" class="active" style="padding:10px 20px;border-radius:9px 9px 0 0;font-size:14px;font-weight:600;color:var(--gold);background:var(--panel);border:1px solid var(--line);border-bottom:none;text-decoration:none">📊 资产分类树（5级）</a>
+  <a href="valuation_checklist.html" style="padding:10px 20px;border-radius:9px 9px 0 0;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s">🧮 估值与风险分析清单</a>
+  <a href="roles_map.html" style="padding:10px 20px;border-radius:9px 9px 0 0;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s">👥 岗位映射</a>
+  <a href="matrix_view.html" style="padding:10px 18px;border-radius:9px 9px 0 0;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s">🔀 岗位×资产矩阵</a>
+  <a href="scale_view.html" style="padding:10px 18px;border-radius:9px 9px 0 0;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s">📈 资产规模</a>
+</div>
+<div style="padding:0 32px">
+<header>
+  <h1><span class="en">Asset Taxonomy · 5-Level</span>广义金融资产分类 · 5级树状结构</h1>
+</header>
+<p class="sub">
+  L1 一级类别 → L2 二级子类 → L3 子维度/板块 → L4 具体品种 → L5 切片（期限/评级/市场/结构等，按品类自适应）。
+  分类是分析入口而非互斥标签：可转债、REITs、ABS、雪球等会在多个类别下重复出现，需回到收益/风险/期限/流动性维度匹配判断。
+</p>
+
+<div class="legend">
+  <span><i class="dot" style="background:var(--l1)"></i>L1 一级类别</span>
+  <span><i class="dot" style="background:var(--l2)"></i>L2 二级子类</span>
+  <span><i class="dot" style="background:var(--l3)"></i>L3 子维度</span>
+  <span><i class="dot" style="background:var(--l4)"></i>L4 品种</span>
+  <span><i class="dot" style="background:var(--l5)"></i>L5 切片</span>
+</div>
+
+<div class="toolbar">
+  <button id="collapseAll">全部折叠</button>
+  <button data-lvl="2">展开到 L2</button>
+  <button data-lvl="3">展开到 L3</button>
+  <button data-lvl="4">展开到 L4</button>
+  <button id="expandAll">全部展开</button>
+  <input id="search" type="text" placeholder="搜索（如：雪球 / RMBS / 黄金 / 国债期货）…">
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="root-card" id="rootCard"></div>
+<div class="tree" id="tree"></div>
+
+<details class="issues" id="issuesBox"></details>
+
+<footer>
+  <div>数据文件：<code>asset_taxonomy_data.js</code>（<code>window.ASSET_DATA</code>，递归 JSON <code>{name, note?, children?}</code>）。另有 <code>asset_taxonomy.json</code> 纯数据版。</div>
+  <div>修改结构：编辑 <code>asset_taxonomy_data.js</code> 中对应节点的 <code>children</code> 即可，渲染/统计/搜索自动适配任意深度。</div>
+</footer>
+
+<script src="asset_taxonomy_data.js"></script>
+<script src="scale_map.js"></script>
+<script>
+const DATA = window.ASSET_DATA;
+const SCALE = window.SCALE_MAP || {};
+const tree = document.getElementById('tree');
+
+function scaleBadge(name, level){
+  const s = SCALE[name];
+  if(!s) return '';
+  // L1 用 headline，L2 用 value
+  if(level===1 && s.headline){
+    return `<span class="scale-badge l1" title="${s.headline.label} · ${s.headline.asof}">≈${s.headline.value}万亿</span>`;
+  }
+  if(s.value!=null){
+    const tierCls = s.tier==='exact'?'exact':'estimate';
+    return `<span class="scale-badge ${tierCls}" title="${s.asof} · ${s.tier==='exact'?'精确统计':'合理估算'}">${s.value}万亿</span>`;
+  }
+  return '';
+}
+
+function buildNode(node, level){
+  const kids = node.children || [];
+  const hasKids = kids.length > 0;
+  const det = document.createElement(hasKids ? 'details' : 'div');
+  det.className = `node lv${level} ${hasKids?'':'leaf'}`;
+  det.dataset.level = level;
+  const sum = document.createElement(hasKids ? 'summary' : 'div');
+  if(!hasKids) sum.style.cssText = 'padding:5px 11px;display:flex;align-items:center;gap:9px;';
+  sum.innerHTML =
+    `<span class="twirl">▶</span>`+
+    `<span class="badge">L${level}</span>`+
+    `<span class="name">${node.name}</span>`+
+    (node.note?`<span class="note">${node.note}</span>`:'')+
+    scaleBadge(node.name, level)+
+    (hasKids?`<span class="kids-count">(${kids.length})</span>`:'');
+  det.appendChild(sum);
+  if(hasKids){
+    const box = document.createElement('div');
+    box.className = 'children';
+    kids.forEach(k=> box.appendChild(buildNode(k, level+1)));
+    det.appendChild(box);
+  }
+  return det;
+}
+
+// root card
+document.getElementById('rootCard').innerHTML =
+  `<div class="t">${DATA.name}</div><div class="d">${DATA.note||''}</div>`;
+
+// render L1+
+(DATA.children||[]).forEach(n=> tree.appendChild(buildNode(n,1)));
+
+// stats
+function countByLevel(node, level, acc){
+  acc.byLevel[level]=(acc.byLevel[level]||0)+1;
+  const kids=node.children||[];
+  if(!kids.length) acc.leaves++;
+  kids.forEach(c=>countByLevel(c,level+1,acc));
+  return acc;
+}
+const acc={byLevel:{},leaves:0};
+(DATA.children||[]).forEach(n=>countByLevel(n,1,acc));
+document.getElementById('stats').innerHTML =
+  Object.keys(acc.byLevel).sort().map(l=>`L${l} <b>${acc.byLevel[l]}</b>`).join(' · ')+
+  ` · 叶子 <b>${acc.leaves}</b>`;
+
+// controls
+const allDetails = ()=>[...tree.querySelectorAll('details')];
+document.getElementById('expandAll').onclick = ()=>allDetails().forEach(d=>d.open=true);
+document.getElementById('collapseAll').onclick = ()=>allDetails().forEach(d=>d.open=false);
+const openTo = lv => allDetails().forEach(d=> d.open = (+d.dataset.level < lv));
+document.querySelectorAll('.toolbar button[data-lvl]').forEach(b=>
+  b.onclick=()=>openTo(+b.dataset.lvl));
+openTo(2);
+
+// search
+const search = document.getElementById('search');
+search.oninput = ()=>{
+  const q = search.value.trim();
+  const nodes = [...tree.querySelectorAll('.node')];
+  nodes.forEach(n=>{ n.classList.remove('hidden'); const nm=n.querySelector('.name'); if(nm) nm.innerHTML=nm.textContent; });
+  if(!q){ openTo(2); return; }
+  const ql=q.toLowerCase();
+  const matches = nodes.filter(n=>{ const nm=n.querySelector('.name'); return nm && nm.textContent.toLowerCase().includes(ql); });
+  if(!matches.length){ nodes.forEach(n=>n.classList.add('hidden')); return; }
+  const keep=new Set();
+  matches.forEach(m=>{
+    const nm=m.querySelector('.name');
+    nm.innerHTML = nm.textContent.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'),'<mark>$1</mark>');
+    let el=m; while(el && el!==tree){ keep.add(el); if(el.tagName==='DETAILS') el.open=true; el=el.parentElement.closest('.node'); }
+    m.querySelectorAll('.node').forEach(d=>keep.add(d));
+  });
+  nodes.forEach(n=>{ if(!keep.has(n)) n.classList.add('hidden'); });
+};
+
+// issues / 修改记录
+const issues = window.ASSET_ISSUES||[];
+const box = document.getElementById('issuesBox');
+box.innerHTML = `<summary>审校修改记录（${issues.length} 条）— workflow 自动重构 + 审校过程中的主要调整</summary>`+
+  `<ol>${issues.map(i=>`<li>${i}</li>`).join('')}</ol>`;
+</script>
+</div>
+</body>
+</html>

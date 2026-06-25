@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>估值与风险分析原材料清单</title>
+<style>
+  :root{
+    --bg:#0a1230; --panel:#10204f; --panel2:#16285e;
+    --line:#2a3f7a; --gold:#f5c542; --text:#e8eefc; --muted:#8ea3d6;
+    --l1:#f5c542; --method:#4fb0ff; --risk:#ff8fab; --data:#5be0c0; --tool:#c98bff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    background:linear-gradient(160deg,#070d24,#0a1230 40%,#0b1538);color:var(--text);padding:0 0 80px}
+
+  /* top tabs */
+  .tabs{position:sticky;top:0;z-index:20;display:flex;gap:4px;padding:14px 32px 0;background:rgba(7,13,36,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .tabs a{padding:10px 20px;border-radius:9px 9px 0 0;font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s}
+  .tabs a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .tabs a.active{color:var(--gold);background:var(--panel);border-color:var(--line)}
+
+  .wrap{padding:24px 32px}
+  header h1{font-size:23px;margin:0 0 4px;letter-spacing:1px}
+  header h1 .en{color:var(--gold);font-size:12px;letter-spacing:3px;text-transform:uppercase;display:block;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin:8px 0 14px;max-width:1040px;line-height:1.6}
+
+  .keynote{background:rgba(245,197,66,.07);border:1px solid rgba(245,197,66,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:12.5px;line-height:1.7;color:#d8e2fb}
+  .keynote b{color:var(--gold)}
+
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  .toolbar button{background:var(--panel2);color:var(--text);border:1px solid var(--line);padding:7px 13px;border-radius:8px;cursor:pointer;font-size:13px}
+  .toolbar button:hover{background:#1d306e;border-color:var(--gold)}
+  .toolbar input{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px;min-width:260px}
+  .stats{margin-left:auto;color:var(--muted);font-size:12.5px}
+
+  .l1block{margin-bottom:14px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.015)}
+  .l1head{display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer;background:linear-gradient(135deg,#15225a,#0e1840)}
+  .l1head:hover{background:#16285e}
+  .l1head .tw{color:var(--muted);transition:transform .15s;font-size:13px}
+  .l1block.open .l1head .tw{transform:rotate(90deg)}
+  .l1head .ti{font-size:17px;font-weight:700;color:var(--gold)}
+  .l1head .nt{color:var(--muted);font-size:12px}
+  .l1head .cnt{margin-left:auto;color:var(--muted);font-size:12px}
+
+  .l1body{display:none;padding:6px 16px 16px}
+  .l1block.open .l1body{display:block}
+
+  .common{margin:10px 0 16px;padding:11px 14px;background:rgba(79,176,255,.06);border:1px solid rgba(79,176,255,.25);border-radius:9px}
+  .common .lbl{font-size:11px;font-weight:700;color:var(--method);text-transform:uppercase;letter-spacing:1px;margin-bottom:7px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{font-size:12px;padding:3px 10px;border-radius:14px;background:rgba(79,176,255,.12);border:1px solid rgba(79,176,255,.3);color:#cfe6ff}
+
+  table{width:100%;border-collapse:collapse;margin-top:4px;font-size:12.5px}
+  thead th{text-align:left;padding:9px 12px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--line);font-size:11.5px;letter-spacing:.5px}
+  tbody td{padding:11px 12px;border-bottom:1px solid rgba(42,63,122,.4);vertical-align:top;line-height:1.7}
+  tbody tr:hover{background:rgba(255,255,255,.025)}
+  .l2name{font-weight:700;color:var(--text);font-size:13.5px;white-space:nowrap}
+  .col-method .tag,.col-risk .tag,.col-data .tag,.col-tool .tag{display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:6px;font-size:11.5px;line-height:1.6}
+  .col-method .tag{background:rgba(79,176,255,.12);border:1px solid rgba(79,176,255,.28);color:#cfe6ff}
+  .col-risk .tag{background:rgba(255,143,171,.1);border:1px solid rgba(255,143,171,.28);color:#ffd0dc}
+  .col-tool .tag{background:rgba(201,139,255,.1);border:1px solid rgba(201,139,255,.28);color:#e7d2ff}
+  .dgroup{margin-bottom:6px}
+  .dgroup .gname{font-size:10.5px;color:var(--data);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-right:6px}
+  .dgroup .gitems{color:#bcd}
+  th.c1{width:120px}th.c2{width:21%}th.c3{width:20%}th.c4{width:25%}th.c5{width:16%}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:0 0 8px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .dot{width:9px;height:9px;border-radius:50%}
+  mark{background:rgba(245,197,66,.4);color:#fff;border-radius:3px;padding:0 2px}
+  .hidden{display:none!important}
+  footer{margin-top:24px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
+  code{background:#0c1738;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--data)}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <a href="index.html">📊 资产分类树（5级）</a>
+  <a href="valuation_checklist.html" class="active">🧮 估值与风险分析清单</a>
+  <a href="roles_map.html">👥 岗位映射</a>
+  <a href="matrix_view.html">🔀 岗位×资产矩阵</a>
+  <a href="scale_view.html">📈 资产规模</a>
+</div>
+
+<div class="wrap">
+<header>
+  <h1><span class="en">Valuation &amp; Risk · Data Checklist</span>估值与风险分析原材料清单</h1>
+</header>
+<p class="sub" id="subtitle"></p>
+
+<div class="keynote">
+  <b>共性层级：L2 是估值方法论的分水岭。</b>
+  同一 L2 下的资产共享<b>估值方法、风险因子类型、所需数据结构</b>，L3/L4 只是参数细化（如评级、期限、市场不同）。
+  而同一 <b>L1</b> 下的所有 L2 共享底层的<b>宏观/市场共性因子</b>（见每个大类顶部的蓝色框）。
+  跨 L1 时，估值逻辑发生根本切换：债权=贴现 / 权益=倍数+DCF / 衍生=期权定价 / 实物=成本+收益法 / 组合=穿透+净值。
+</div>
+
+<div class="legend">
+  <span><i class="dot" style="background:var(--method)"></i>估值方法</span>
+  <span><i class="dot" style="background:var(--risk)"></i>风险指标</span>
+  <span><i class="dot" style="background:var(--data)"></i>所需数据</span>
+  <span><i class="dot" style="background:var(--tool)"></i>模型工具</span>
+</div>
+
+<div class="toolbar">
+  <button id="expandAll">全部展开</button>
+  <button id="collapseAll">全部折叠</button>
+  <input id="search" type="text" placeholder="搜索方法/风险/数据（如：DCF、违约概率、波动率、IFRS9）…">
+  <div class="stats" id="stats"></div>
+</div>
+
+<div id="content"></div>
+
+<footer>
+  <div>数据文件：<code>valuation_data.js</code>（<code>window.VAL_DATA</code>）。每个 L2 含 估值方法 / 风险指标 / 所需数据（分组）/ 模型工具 四类原材料。</div>
+  <div>修改：编辑 <code>valuation_data.js</code> 即可，页面自动重渲染。本清单为分析框架级，具体参数（评级阈值、折现率取值等）在 L3/L4 落地。</div>
+</footer>
+</div>
+
+<script src="valuation_data.js"></script>
+<script>
+const D = window.VAL_DATA;
+document.getElementById('subtitle').textContent = D.subtitle;
+const content = document.getElementById('content');
+
+function tags(arr, cls){ return arr.map(x=>`<span class="tag">${x}</span>`).join(''); }
+function dataGroups(obj){
+  return Object.entries(obj).map(([g,items])=>
+    `<div class="dgroup"><span class="gname">${g}</span><span class="gitems">${items.join('、')}</span></div>`
+  ).join('');
+}
+
+D.categories.forEach((c,i)=>{
+  const block = document.createElement('div');
+  block.className = 'l1block'+(i===0?' open':'');
+  const rows = c.l2.map(l2=>`
+    <tr>
+      <td class="l2name">${l2.name}</td>
+      <td class="col-method">${tags(l2.methods)}</td>
+      <td class="col-risk">${tags(l2.risks)}</td>
+      <td class="col-data">${dataGroups(l2.data)}</td>
+      <td class="col-tool">${tags(l2.tools)}</td>
+    </tr>`).join('');
+  block.innerHTML = `
+    <div class="l1head">
+      <span class="tw">▶</span>
+      <span class="ti">${c.name}</span>
+      <span class="nt">${c.note}</span>
+      <span class="cnt">${c.l2.length} 个子类</span>
+    </div>
+    <div class="l1body">
+      <div class="common">
+        <div class="lbl">L1 共性因子 · 跨子类适用</div>
+        <div class="chips">${c.common_factors.map(f=>`<span class="chip">${f}</span>`).join('')}</div>
+      </div>
+      <table>
+        <thead><tr>
+          <th class="c1">L2 子类</th><th class="c2">估值方法</th><th class="c3">风险指标</th><th class="c4">所需数据</th><th class="c5">模型工具</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  block.querySelector('.l1head').onclick = ()=> block.classList.toggle('open');
+  content.appendChild(block);
+});
+
+// stats
+const nL2 = D.categories.reduce((s,c)=>s+c.l2.length,0);
+document.getElementById('stats').innerHTML = `L1 <b style="color:#e8eefc">${D.categories.length}</b> · L2 <b style="color:#e8eefc">${nL2}</b>`;
+
+// controls
+document.getElementById('expandAll').onclick = ()=>document.querySelectorAll('.l1block').forEach(b=>b.classList.add('open'));
+document.getElementById('collapseAll').onclick = ()=>document.querySelectorAll('.l1block').forEach(b=>b.classList.remove('open'));
+
+// search
+const search = document.getElementById('search');
+search.oninput = ()=>{
+  const q = search.value.trim().toLowerCase();
+  const blocks = [...document.querySelectorAll('.l1block')];
+  if(!q){ blocks.forEach(b=>{b.classList.remove('hidden');[...b.querySelectorAll('tbody tr')].forEach(r=>{r.classList.remove('hidden');r.querySelectorAll('td').forEach(td=>td.innerHTML=td.innerHTML.replace(/<\/?mark>/g,''));});}); return; }
+  blocks.forEach(b=>{
+    let anyRow=false;
+    [...b.querySelectorAll('tbody tr')].forEach(r=>{
+      const txt=r.textContent.toLowerCase();
+      const hit=txt.includes(q);
+      r.classList.toggle('hidden',!hit);
+      if(hit){anyRow=true;
+        r.querySelectorAll('td').forEach(td=>{
+          td.innerHTML=td.innerHTML.replace(/<\/?mark>/g,'');
+          td.innerHTML=td.innerHTML.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'),'<mark>$1</mark>');
+        });
+      }
+    });
+    b.classList.toggle('hidden',!anyRow);
+    if(anyRow) b.classList.add('open');
+  });
+};
+</script>
+</body>
+</html>
