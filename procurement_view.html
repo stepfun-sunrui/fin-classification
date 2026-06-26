@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>金融数据采购清单</title>
+<style>
+  :root{
+    --bg:#0a1230; --panel:#10204f; --panel2:#16285e;
+    --line:#2a3f7a; --gold:#f5c542; --text:#e8eefc; --muted:#8ea3d6;
+    --verified:#5be0c0; --estimate:#f5b942;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    background:linear-gradient(160deg,#070d24,#0a1230 40%,#0b1538);color:var(--text);padding:0 0 80px}
+  .tabs{position:sticky;top:0;z-index:20;display:flex;gap:4px;padding:14px 32px 0;background:rgba(7,13,36,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs a{padding:10px 14px;border-radius:9px 9px 0 0;font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s;cursor:pointer}
+  .tabs a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .tabs a.active{color:var(--gold);background:var(--panel);border-color:var(--line)}
+
+  .wrap{padding:24px 32px}
+  header h1{font-size:23px;margin:0 0 4px;letter-spacing:1px}
+  header h1 .en{color:var(--gold);font-size:12px;letter-spacing:3px;text-transform:uppercase;display:block;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin:8px 0 12px;max-width:1080px;line-height:1.6}
+  .disclaimer{background:rgba(255,143,171,.07);border:1px solid rgba(255,143,171,.3);border-radius:10px;padding:11px 15px;margin-bottom:14px;font-size:12px;line-height:1.6;color:#ffd8e1}
+  .disclaimer b{color:#ff8fab}
+
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  .toolbar input{background:var(--panel);border:1px solid var(--line);color:var(--text);padding:7px 12px;border-radius:8px;font-size:13px;min-width:280px}
+  .stats{margin-left:auto;color:var(--muted);font-size:12.5px}
+  .stats b{color:var(--text)}
+
+  .group{margin-bottom:22px}
+  .ghead{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  .gdot{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
+  .gname{font-size:16px;font-weight:700}
+  .gintro{font-size:12px;color:var(--muted);margin-left:4px}
+
+  .pcard{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;background:rgba(255,255,255,.015)}
+  .phead{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer}
+  .phead:hover{background:rgba(255,255,255,.03)}
+  .pcat{font-size:14.5px;font-weight:700}
+  .conf{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap}
+  .conf.verified{background:rgba(91,224,192,.14);color:var(--verified);border:1px solid rgba(91,224,192,.4)}
+  .conf.estimate{background:rgba(245,185,66,.12);color:var(--estimate);border:1px dashed rgba(245,185,66,.5)}
+  .pserves{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+  .pserves .s{font-size:10px;padding:1px 7px;border-radius:5px;background:rgba(245,197,66,.1);border:1px solid rgba(245,197,66,.3);color:var(--gold);white-space:nowrap}
+  .ptw{color:var(--muted);font-size:12px;transition:transform .15s}
+  .pcard.open .ptw{transform:rotate(90deg)}
+
+  .pbody{display:none;padding:2px 16px 16px;border-top:1px solid rgba(42,63,122,.4)}
+  .pcard.open .pbody{display:block}
+  .prow{margin-top:12px}
+  .plbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:6px}
+  .pdesc{font-size:13px;color:#dde;line-height:1.6}
+  .matlist{display:flex;flex-wrap:wrap;gap:6px}
+  .mat{font-size:11.5px;padding:2px 9px;border-radius:12px;background:rgba(245,185,66,.1);border:1px solid rgba(245,185,66,.35);color:#f5b942}
+  .suppliers{display:flex;flex-wrap:wrap;gap:7px}
+  .supplier{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:6px 11px;font-size:12.5px;font-weight:600;color:#cfe6ff}
+  .supplier.first{border-color:var(--gold);color:var(--gold)}
+  .kv{display:grid;grid-template-columns:90px 1fr;gap:6px 12px;font-size:12.5px;line-height:1.6}
+  .kv .k{color:var(--muted);font-weight:600}
+  .kv .v{color:#dde}
+  .kv .v.cost{color:var(--gold);font-weight:600}
+  .kv .v.cov{color:var(--verified)}
+  .note-c{font-size:11px;color:#9fb0d8;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(42,63,122,.5);line-height:1.5}
+
+  .legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin-bottom:14px}
+  .legend span{display:inline-flex;align-items:center;gap:5px}
+  .lg{width:11px;height:11px;border-radius:3px}
+  mark{background:rgba(245,197,66,.4);color:#fff;border-radius:3px;padding:0 2px}
+  .hidden{display:none!important}
+  footer{margin-top:24px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
+  code{background:#0c1738;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--verified)}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <a href="index.html">📊 资产分类树（5级）</a>
+  <a href="valuation_checklist.html">🧮 估值与风险分析清单</a>
+  <a href="roles_map.html">👥 岗位映射</a>
+  <a href="matrix_view.html">🔀 岗位×资产矩阵</a>
+  <a href="scale_view.html">📈 资产规模</a>
+  <a href="priority_view.html">🎯 分析优先级</a>
+  <a href="procurement_view.html" class="active">🛒 数据采购清单</a>
+</div>
+
+<div class="wrap">
+<header>
+  <h1><span class="en">Financial Data Procurement List</span>金融数据采购清单</h1>
+</header>
+<p class="sub" id="subtitle"></p>
+<div class="disclaimer" id="disclaimer"></div>
+
+<div class="legend">
+  <span><i class="lg" style="background:var(--verified)"></i>已核实（多源交叉确认）</span>
+  <span><i class="lg estimate" style="background:var(--estimate)"></i>估算（单源/推算/待确认）</span>
+  <span style="margin-left:8px">金色供应商=该类首选/龙头</span>
+</div>
+
+<div class="toolbar">
+  <input id="search" type="text" placeholder="搜索供应商/数据/资产（如：Wind、中债、PD、波动率、ABS）…">
+  <div class="stats" id="stats"></div>
+</div>
+
+<div id="content"></div>
+
+<footer>
+  <div>数据文件：<code>procurement_data.js</code>。来自联网深度研究(2024-2025)并经多源对抗式核实。</div>
+  <div><b style="color:#ff8fab">成本提示</b>：B2B数据采购普遍可议价,报价多为单席位标价(批量大幅折扣)。覆盖量为厂商自报或监管口径,不同口径不可直接比较。</div>
+</footer>
+</div>
+
+<script src="procurement_data.js"></script>
+<script>
+const D = window.PROCUREMENT_DATA;
+document.getElementById('subtitle').textContent = D.subtitle;
+document.getElementById('disclaimer').innerHTML = '<b>⚠ 口径说明：</b>'+D.disclaimer;
+document.getElementById('stats').innerHTML = `${D.stats.groups}类 · <b>${D.stats.items}</b>项采购 · <b>${D.stats.suppliers}</b>家供应商`;
+const content = document.getElementById('content');
+
+D.groups.forEach((g,gi)=>{
+  const sec=document.createElement('div'); sec.className='group';
+  let html=`<div class="ghead"><span class="gdot" style="background:${g.color}"></span><span class="gname" style="color:${g.color}">${g.name}</span><span class="gintro">${g.intro}</span></div>`;
+  html += g.items.map((it,ii)=>`
+    <div class="pcard${gi===0?' open':''}" data-search="${(it.category+' '+it.desc+' '+it.suppliers.join(' ')+' '+it.serves.join(' ')).toLowerCase()}">
+      <div class="phead">
+        <span class="ptw">▶</span>
+        <span class="pcat">${it.category}</span>
+        <span class="conf ${it.conf}">${it.conf==='verified'?'✓已核实':'~估算'}</span>
+        <span class="pserves">${it.serves.map(s=>`<span class="s">${s}</span>`).join('')}</span>
+      </div>
+      <div class="pbody">
+        <div class="prow"><div class="plbl">📦 采购内容</div><div class="pdesc">${it.desc}</div></div>
+        ${(it.materials&&it.materials.length)?`<div class="prow"><div class="plbl">🔗 对应「分析优先级」里的需采购材料（${it.materials.length}项）</div>
+          <div class="matlist">${it.materials.map(m=>`<span class="mat">${m}</span>`).join('')}</div></div>`:''}
+        <div class="prow"><div class="plbl">🏢 供应商（找谁采购）</div>
+          <div class="suppliers">${it.suppliers.map((s,i)=>`<span class="supplier${i===0?' first':''}">${s}</span>`).join('')}</div>
+        </div>
+        <div class="prow">
+          <div class="kv">
+            <span class="k">📊 覆盖标的</span><span class="v cov">${it.coverage}</span>
+            <span class="k">💰 成本区间</span><span class="v cost">${it.cost}</span>
+          </div>
+        </div>
+        ${it.note?`<div class="note-c">📝 ${it.note}</div>`:''}
+      </div>
+    </div>`).join('');
+  sec.innerHTML=html;
+  content.appendChild(sec);
+});
+
+content.querySelectorAll('.phead').forEach(h=> h.onclick=()=>h.parentElement.classList.toggle('open'));
+
+const search=document.getElementById('search');
+search.oninput=()=>{
+  const q=search.value.trim().toLowerCase();
+  D.groups.forEach((g,gi)=>{});
+  document.querySelectorAll('.group').forEach(sec=>{
+    let any=false;
+    sec.querySelectorAll('.pcard').forEach(card=>{
+      const hit=!q||card.dataset.search.includes(q);
+      card.classList.toggle('hidden',!hit);
+      if(hit){any=true; if(q) card.classList.add('open');}
+      const cat=card.querySelector('.pcat');
+      cat.innerHTML=cat.textContent.replace(/<\/?mark>/g,'');
+      if(q&&hit) cat.innerHTML=cat.textContent.replace(new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`,'gi'),'<mark>$1</mark>');
+    });
+    sec.classList.toggle('hidden',!any);
+  });
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>资产优先级与分析材料清单</title>
+<style>
+  :root{
+    --bg:#0a1230; --panel:#10204f; --panel2:#16285e;
+    --line:#2a3f7a; --gold:#f5c542; --text:#e8eefc; --muted:#8ea3d6;
+    --p0:#ff8fab; --p1:#f5c542; --p2:#5be0c0;
+    --method:#4fb0ff; --risk:#ff8fab; --data:#5be0c0; --tool:#c98bff; --role:#f5c542;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    background:linear-gradient(160deg,#070d24,#0a1230 40%,#0b1538);color:var(--text);padding:0 0 80px}
+  .tabs{position:sticky;top:0;z-index:20;display:flex;gap:4px;padding:14px 32px 0;background:rgba(7,13,36,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs a{padding:10px 15px;border-radius:9px 9px 0 0;font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s;cursor:pointer}
+  .tabs a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .tabs a.active{color:var(--gold);background:var(--panel);border-color:var(--line)}
+
+  .wrap{padding:24px 32px}
+  header h1{font-size:23px;margin:0 0 4px;letter-spacing:1px}
+  header h1 .en{color:var(--gold);font-size:12px;letter-spacing:3px;text-transform:uppercase;display:block;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin:8px 0 12px;max-width:1080px;line-height:1.6}
+  .note{background:rgba(245,197,66,.07);border:1px solid rgba(245,197,66,.3);border-radius:10px;padding:11px 15px;margin-bottom:16px;font-size:12px;line-height:1.6;color:#d8e2fb}
+  .note b{color:var(--gold)}
+
+  /* tier sections */
+  .tier{margin-bottom:26px}
+  .tierhead{display:flex;align-items:center;gap:12px;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--line)}
+  .tierbadge{font-size:16px;font-weight:800;padding:4px 14px;border-radius:8px;letter-spacing:1px}
+  .tier.P0 .tierbadge{background:rgba(255,143,171,.16);color:var(--p0);border:1px solid var(--p0)}
+  .tier.P1 .tierbadge{background:rgba(245,197,66,.16);color:var(--p1);border:1px solid var(--p1)}
+  .tier.P2 .tierbadge{background:rgba(91,224,192,.14);color:var(--p2);border:1px solid var(--p2)}
+  .tierdesc{font-size:12.5px;color:var(--muted)}
+  .tiersum{margin-left:auto;font-size:12.5px;color:var(--text);font-weight:600}
+
+  /* unit cards */
+  .ucard{border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden;background:rgba(255,255,255,.015)}
+  .uhead{display:flex;align-items:center;gap:14px;padding:13px 18px;cursor:pointer;background:linear-gradient(135deg,#15225a,#0e1840)}
+  .uhead:hover{background:#16285e}
+  .uhead .tw{color:var(--muted);font-size:13px;transition:transform .15s}
+  .ucard.open .uhead .tw{transform:rotate(90deg)}
+  .uname{font-size:15.5px;font-weight:700}
+  .usize{font-size:18px;font-weight:800;color:var(--gold);margin-left:auto;white-space:nowrap}
+  .usize .u{font-size:11px;color:var(--muted);font-weight:600}
+  .ubar{flex:0 0 120px;height:8px;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+  .ubar i{position:absolute;left:0;top:0;height:100%;border-radius:4px}
+  .ucommon{font-size:11.5px;color:var(--muted);padding:0 18px 0 0}
+  .ul2tags{display:flex;gap:5px;flex-wrap:wrap}
+  .ul2tags .t{font-size:10px;padding:1px 7px;border-radius:5px;background:rgba(79,176,255,.1);border:1px solid rgba(79,176,255,.25);color:#bcd}
+
+  .ubody{display:none;padding:4px 18px 18px}
+  .ucard.open .ubody{display:block}
+  .urow{margin-top:14px}
+  .ulbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+  .ulbl .d{width:9px;height:9px;border-radius:50%}
+  .tag{display:inline-block;margin:2px 5px 2px 0;padding:3px 9px;border-radius:6px;font-size:11.5px;line-height:1.6}
+  .tag.method{background:rgba(79,176,255,.12);border:1px solid rgba(79,176,255,.28);color:#cfe6ff}
+  .tag.risk{background:rgba(255,143,171,.1);border:1px solid rgba(255,143,171,.28);color:#ffd0dc}
+  .tag.tool{background:rgba(201,139,255,.1);border:1px solid rgba(201,139,255,.28);color:#e7d2ff}
+  .dgroup{margin-bottom:5px;font-size:12px}
+  .dgroup .gn{font-size:10.5px;color:var(--data);font-weight:700;margin-right:6px}
+  .dgroup .gi{color:#bcd}
+  /* 数据三分类 */
+  .dclass{display:flex;gap:10px;margin:6px 0;padding:7px 10px;border-radius:8px;font-size:12px;line-height:1.6;align-items:baseline}
+  .dclass .dctag{flex:0 0 auto;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap}
+  .dclass .dcitems{color:#cdd}
+  .dc-public{background:rgba(91,224,192,.07);border:1px solid rgba(91,224,192,.25)}
+  .dc-public .dctag{background:rgba(91,224,192,.16);color:#5be0c0}
+  .dc-synth{background:rgba(79,176,255,.06);border:1px solid rgba(79,176,255,.25)}
+  .dc-synth .dctag{background:rgba(79,176,255,.14);color:#4fb0ff}
+  .dc-buy{background:rgba(255,143,171,.06);border:1px solid rgba(255,143,171,.28)}
+  .dc-buy .dctag{background:rgba(255,143,171,.14);color:#ff8fab}
+  .matsup{display:inline-flex;align-items:center;margin:2px 7px 2px 0;font-size:11.5px}
+  .matsup .sup{font-size:10px;margin-left:4px;padding:1px 6px;border-radius:10px;background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.35);color:var(--gold);text-decoration:none;white-space:nowrap}
+  .matsup .sup:hover{background:rgba(245,197,66,.25)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:860px){.grid2{grid-template-columns:1fr}}
+
+  /* review roles - highlighted */
+  .reviewbox{background:rgba(245,197,66,.06);border:1px solid rgba(245,197,66,.3);border-radius:10px;padding:12px 14px;margin-top:14px}
+  .rolelist{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .rolecard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:12px}
+  .rolecard .rn{font-weight:700;color:#ffe9a8}
+  .rolecard .ro{color:var(--muted);font-size:10.5px;display:block;margin-top:2px}
+  .rolecard .rf{font-size:9.5px;color:var(--method);background:rgba(79,176,255,.12);padding:1px 5px;border-radius:4px;margin-left:5px}
+
+  /* P2 compact */
+  .p2row{display:flex;align-items:center;gap:12px;padding:9px 16px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;background:rgba(255,255,255,.012)}
+  .p2row .nm{font-weight:600;font-size:13px}
+  .p2row .sz{color:var(--p2);font-weight:700;margin-left:auto}
+  .p2row .cm{font-size:11px;color:var(--muted)}
+  .p2row .bar{flex:0 0 80px;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden;position:relative}
+  .p2row .bar i{position:absolute;left:0;top:0;height:100%;background:var(--p2);border-radius:3px}
+
+  footer{margin-top:24px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
+  code{background:#0c1738;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--data)}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <a href="index.html">📊 资产分类树（5级）</a>
+  <a href="valuation_checklist.html">🧮 估值与风险分析清单</a>
+  <a href="roles_map.html">👥 岗位映射</a>
+  <a href="matrix_view.html">🔀 岗位×资产矩阵</a>
+  <a href="scale_view.html">📈 资产规模</a>
+  <a href="priority_view.html" class="active">🎯 分析优先级</a>
+  <a href="procurement_view.html">🛒 数据采购清单</a>
+</div>
+
+<div class="wrap">
+<header>
+  <h1><span class="en">Analysis Priority · P0/P1/P2</span>资产分析优先级与材料清单</h1>
+</header>
+<p class="sub" id="subtitle"></p>
+<div class="note" id="note"></div>
+
+<div id="content"></div>
+
+<footer>
+  <div>数据文件：<code>priority_data.js</code>。由 资产规模 + 估值清单 + 岗位映射 三个数据源按「分析单元」聚合。</div>
+  <div>分析单元 = 按「定价/风险材料 + review岗位」共性合并的 L2 组合。优先级按累计资金量 80/15/5 分档。</div>
+</footer>
+</div>
+
+<script src="priority_data.js"></script>
+<script>
+const P = window.PRIORITY_DATA;
+document.getElementById('subtitle').textContent = P.subtitle;
+document.getElementById('note').innerHTML = '<b>说明：</b>'+P.totalNote+
+  '<div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:14px">'+
+  '<span style="color:#5be0c0">● 公开可获取</span>：'+P.clsDesc.public+
+  ' &nbsp;<span style="color:#4fb0ff">● 私有·可合成</span>：'+P.clsDesc.synth+
+  ' &nbsp;<span style="color:#ff8fab">● 私有·需采购</span>：'+P.clsDesc.buy+
+  '</div>';
+const content = document.getElementById('content');
+const TIER_COLOR={P0:'var(--p0)',P1:'var(--p1)',P2:'var(--p2)'};
+const maxSize=Math.max(...P.units.map(u=>u.size));
+
+function tags(arr,cls){return arr.map(x=>`<span class="tag ${cls}">${x}</span>`).join('');}
+function dataByClass(u){
+  const obj=u.dataByClass;
+  const order=[['public','公开可获取','dc-public'],['synth','私有·可合成','dc-synth']];
+  let html=order.map(([k,label,cls])=>{
+    const its=obj[k]||[];
+    if(!its.length) return '';
+    return `<div class="dclass ${cls}">
+      <span class="dctag">${label} · ${its.length}</span>
+      <span class="dcitems">${its.join('、')}</span>
+    </div>`;
+  }).join('');
+  // 需采购：用 buyLinked，每项材料后挂首选供应商，整块可点击跳到采购tab
+  const bl=u.buyLinked||[];
+  if(bl.length){
+    html+=`<div class="dclass dc-buy">
+      <span class="dctag">私有·需采购 · ${bl.length}</span>
+      <span class="dcitems">${bl.map(b=>`<span class="matsup" title="找谁采购：${b.supplier}">${b.name}<a class="sup" href="procurement_view.html">🛒${b.supplier}</a></span>`).join('')}</span>
+    </div>`;
+  }
+  return html;
+}
+
+['P0','P1','P2'].forEach(tier=>{
+  const us=P.units.filter(u=>u.tier===tier);
+  if(!us.length) return;
+  const sum=us.reduce((s,u)=>s+u.size,0);
+  const sec=document.createElement('div');
+  sec.className='tier '+tier;
+  let html=`<div class="tierhead">
+    <span class="tierbadge">${tier}</span>
+    <span class="tierdesc">${P.tierDef[tier]}</span>
+    <span class="tiersum">${us.length}个单元 · 约${Math.round(sum)}万亿</span>
+  </div>`;
+
+  if(tier==='P2'){
+    // 精简行
+    html += us.map(u=>`
+      <div class="p2row">
+        <span class="nm">${u.name}</span>
+        <span class="cm">${u.common}</span>
+        <div class="bar"><i style="width:${u.size/maxSize*100}%"></i></div>
+        <span class="sz">${u.size}<span style="font-size:10px;color:var(--muted)">万亿</span></span>
+      </div>`).join('');
+  } else {
+    // P0/P1 完整卡片
+    html += us.map((u,i)=>`
+      <div class="ucard${i===0&&tier==='P0'?' open':''}">
+        <div class="uhead">
+          <span class="tw">▶</span>
+          <span class="uname">${u.name}</span>
+          <span class="ul2tags">${u.l2.map(l=>`<span class="t">${l}</span>`).join('')}</span>
+          <div class="ubar"><i style="width:${u.size/maxSize*100}%;background:${TIER_COLOR[tier]}"></i></div>
+          <span class="usize">${u.size}<span class="u">万亿</span></span>
+        </div>
+        <div class="ubody">
+          <div style="font-size:12px;color:var(--muted);margin-top:10px">📐 <b style="color:#cdd">共性：</b>${u.common} ｜ 数据时点 ${u.asof_range[0]==u.asof_range[1]?u.asof_range[0]:u.asof_range[0]+'~'+u.asof_range[1]} ｜ 占比 ${u.sizePct}%（累计${u.cumRatio}%）</div>
+
+          <div class="reviewbox">
+            <div class="ulbl" style="color:var(--role)"><span class="d" style="background:var(--role)"></span>🧑‍💼 找谁 review（推荐岗位）</div>
+            <div class="rolelist">
+              ${u.reviewPick.map(r=>`<div class="rolecard"><span class="rn">${r.role}</span><span class="rf">${r.func}</span><span class="ro">${r.org}</span></div>`).join('')}
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="urow">
+              <div class="ulbl" style="color:var(--method)"><span class="d" style="background:var(--method)"></span>估值方法</div>
+              ${tags(u.methods,'method')}
+            </div>
+            <div class="urow">
+              <div class="ulbl" style="color:var(--risk)"><span class="d" style="background:var(--risk)"></span>风险指标</div>
+              ${tags(u.risks,'risk')}
+            </div>
+          </div>
+
+          <div class="urow">
+            <div class="ulbl" style="color:var(--data)"><span class="d" style="background:var(--data)"></span>所需数据 · 按获取难度分类</div>
+            ${dataByClass(u)}
+          </div>
+
+          <div class="urow">
+            <div class="ulbl" style="color:var(--tool)"><span class="d" style="background:var(--tool)"></span>模型工具</div>
+            ${tags(u.tools,'tool')}
+          </div>
+        </div>
+      </div>`).join('');
+  }
+  sec.innerHTML=html;
+  content.appendChild(sec);
+});
+
+// 点击展开
+content.querySelectorAll('.uhead').forEach(h=>{
+  h.onclick=()=>h.parentElement.classList.toggle('open');
+});
+</script>
+</body>
+</html>
