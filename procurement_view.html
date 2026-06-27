@@ -64,6 +64,12 @@
   .kv .v.cost{color:var(--gold);font-weight:600}
   .kv .v.cov{color:var(--verified)}
   .note-c{font-size:11px;color:#9fb0d8;margin-top:8px;padding-top:8px;border-top:1px dashed rgba(42,63,122,.5);line-height:1.5}
+  .pdesc.detail{font-size:12px;color:#bcd;line-height:1.7;background:rgba(79,176,255,.05);border:1px solid rgba(79,176,255,.18);border-radius:8px;padding:8px 11px}
+  .bkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:6px}
+  .bkrow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;background:rgba(255,255,255,.025);border:1px solid var(--line);border-radius:7px;padding:5px 10px}
+  .bkrow .bkk{font-size:11.5px;color:#9fb0d8}
+  .bkrow .bkv{font-size:12.5px;font-weight:700;color:var(--verified);white-space:nowrap}
+  .bkgrid.price .bkrow .bkv{color:var(--gold);font-weight:600;font-size:11.5px;white-space:normal;text-align:right}
 
   .legend{display:flex;gap:14px;font-size:11.5px;color:var(--muted);margin-bottom:14px}
   .legend span{display:inline-flex;align-items:center;gap:5px}
@@ -124,7 +130,7 @@ D.groups.forEach((g,gi)=>{
   const sec=document.createElement('div'); sec.className='group';
   let html=`<div class="ghead"><span class="gdot" style="background:${g.color}"></span><span class="gname" style="color:${g.color}">${g.name}</span><span class="gintro">${g.intro}</span></div>`;
   html += g.items.map((it,ii)=>`
-    <div class="pcard${gi===0?' open':''}" data-search="${(it.category+' '+it.desc+' '+it.suppliers.join(' ')+' '+it.serves.join(' ')).toLowerCase()}">
+    <div class="pcard${gi===0?' open':''}" data-search="${(it.category+' '+it.desc+' '+(it.detail||'')+' '+it.suppliers.join(' ')+' '+it.serves.join(' ')).toLowerCase()}">
       <div class="phead">
         <span class="ptw">▶</span>
         <span class="pcat">${it.category}</span>
@@ -133,6 +139,9 @@ D.groups.forEach((g,gi)=>{
       </div>
       <div class="pbody">
         <div class="prow"><div class="plbl">📦 采购内容</div><div class="pdesc">${it.desc}</div></div>
+        ${it.detail?`<div class="prow"><div class="plbl">🔍 到底买什么（颗粒度）</div><div class="pdesc detail">${it.detail}</div></div>`:''}
+        ${(it.breakdown&&it.breakdown.length)?`<div class="prow"><div class="plbl">🔢 覆盖量拆解（可核对分项）</div>
+          <div class="bkgrid">${it.breakdown.map(b=>`<div class="bkrow"><span class="bkk">${b[0]}</span><span class="bkv">${b[1]}</span></div>`).join('')}</div></div>`:''}
         ${(it.materials&&it.materials.length)?`<div class="prow"><div class="plbl">🔗 对应「分析优先级」里的需采购材料（${it.materials.length}项）</div>
           <div class="matlist">${it.materials.map(m=>`<span class="mat">${m}</span>`).join('')}</div></div>`:''}
         <div class="prow"><div class="plbl">🏢 供应商（找谁采购）</div>
@@ -144,6 +153,8 @@ D.groups.forEach((g,gi)=>{
             <span class="k">💰 成本区间</span><span class="v cost">${it.cost}</span>
           </div>
         </div>
+        ${(it.priceItems&&it.priceItems.length)?`<div class="prow"><div class="plbl">💴 分项定价（可核对）</div>
+          <div class="bkgrid price">${it.priceItems.map(p=>`<div class="bkrow"><span class="bkk">${p[0]}</span><span class="bkv cost">${p[1]}</span></div>`).join('')}</div></div>`:''}
         ${it.note?`<div class="note-c">📝 ${it.note}</div>`:''}
       </div>
     </div>`).join('');
