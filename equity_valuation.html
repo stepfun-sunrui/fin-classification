@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>上市公司权益 · 分行业估值方法与数据</title>
+<style>
+  :root{
+    --bg:#0a1230; --panel:#10204f; --panel2:#16285e;
+    --line:#2a3f7a; --gold:#f5c542; --text:#e8eefc; --muted:#8ea3d6;
+    --method:#4fb0ff; --special:#ff8fab; --driver:#f5c542; --tool:#c98bff; --role:#f5c542;
+    --public:#5be0c0; --synth:#4fb0ff; --buy:#ff8fab;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;
+    background:linear-gradient(160deg,#070d24,#0a1230 40%,#0b1538);color:var(--text);padding:0 0 80px}
+  .tabs{position:sticky;top:0;z-index:20;display:flex;gap:4px;padding:14px 32px 0;background:rgba(7,13,36,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .tabs a{padding:10px 14px;border-radius:9px 9px 0 0;font-size:13.5px;font-weight:600;color:var(--muted);text-decoration:none;border:1px solid transparent;border-bottom:none;transition:.15s;cursor:pointer}
+  .tabs a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+  .tabs a.active{color:var(--gold);background:var(--panel);border-color:var(--line)}
+
+  .wrap{padding:24px 32px}
+  header h1{font-size:23px;margin:0 0 4px;letter-spacing:1px}
+  header h1 .en{color:var(--gold);font-size:12px;letter-spacing:3px;text-transform:uppercase;display:block;font-weight:600;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin:8px 0 12px;max-width:1120px;line-height:1.6}
+  .note{background:rgba(245,197,66,.07);border:1px solid rgba(245,197,66,.3);border-radius:10px;padding:11px 15px;margin-bottom:16px;font-size:12px;line-height:1.7;color:#d8e2fb}
+  .note b{color:var(--gold)}
+
+  /* 通用框架卡 */
+  .common{border:1px solid var(--line);border-radius:12px;margin-bottom:22px;background:linear-gradient(135deg,#13205428,#0e184028);overflow:hidden}
+  .common .ch{display:flex;align-items:center;gap:10px;padding:12px 18px;cursor:pointer;background:linear-gradient(135deg,#15225a,#0e1840)}
+  .common .ch .tw{color:var(--muted);font-size:12px;transition:transform .15s}
+  .common.open .ch .tw{transform:rotate(90deg)}
+  .common .ch h3{margin:0;font-size:14.5px;color:var(--gold)}
+  .common .ch .hint{font-size:11.5px;color:var(--muted);margin-left:auto}
+  .common .cb{display:none;padding:6px 18px 16px}
+  .common.open .cb{display:block}
+
+  /* 行业卡 */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:980px){.grid{grid-template-columns:1fr}}
+  .scard{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.015)}
+  .sh{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;background:linear-gradient(135deg,#15225a,#0e1840)}
+  .sh:hover{background:#16285e}
+  .sh .ic{font-size:20px;flex:0 0 auto}
+  .sh .nm{font-size:15.5px;font-weight:700}
+  .sh .nt{font-size:11px;color:var(--muted);display:block;margin-top:2px;font-weight:400}
+  .sh .tw{margin-left:auto;color:var(--muted);font-size:12px;transition:transform .15s}
+  .scard.open .sh .tw{transform:rotate(90deg)}
+  .primtags{display:flex;gap:4px;flex-wrap:wrap;padding:0 16px 12px;margin-top:-2px}
+  .scard.open .primtags{display:none}
+  .primtags .pt{font-size:10px;padding:1px 7px;border-radius:5px;background:rgba(79,176,255,.1);border:1px solid rgba(79,176,255,.28);color:#cfe6ff}
+
+  .sb{display:none;padding:2px 16px 16px}
+  .scard.open .sb{display:block}
+  .mnote{font-size:11.5px;color:#cdd;background:rgba(79,176,255,.07);border:1px solid rgba(79,176,255,.2);border-radius:8px;padding:8px 11px;margin:12px 0;line-height:1.6}
+  .row{margin-top:13px}
+  .lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+  .lbl .d{width:9px;height:9px;border-radius:50%}
+  .tag{display:inline-block;margin:2px 5px 2px 0;padding:3px 9px;border-radius:6px;font-size:11.5px;line-height:1.6}
+  .tag.method{background:rgba(79,176,255,.12);border:1px solid rgba(79,176,255,.28);color:#cfe6ff}
+  .tag.prim{background:rgba(245,197,66,.13);border:1px solid rgba(245,197,66,.4);color:#ffe9a8;font-weight:600}
+  .tag.driver{background:rgba(245,197,66,.08);border:1px solid rgba(245,197,66,.25);color:#f3dca0}
+  .tag.special{background:rgba(255,143,171,.1);border:1px solid rgba(255,143,171,.28);color:#ffd0dc}
+
+  /* 数据三分类 */
+  .dclass{display:flex;gap:10px;margin:6px 0;padding:7px 10px;border-radius:8px;font-size:12px;line-height:1.7;align-items:baseline}
+  .dclass .dctag{flex:0 0 auto;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap}
+  .dclass .dcitems{color:#cdd}
+  .dc-public{background:rgba(91,224,192,.07);border:1px solid rgba(91,224,192,.25)}
+  .dc-public .dctag{background:rgba(91,224,192,.16);color:#5be0c0}
+  .dc-synth{background:rgba(79,176,255,.06);border:1px solid rgba(79,176,255,.25)}
+  .dc-synth .dctag{background:rgba(79,176,255,.14);color:#4fb0ff}
+  .dc-buy{background:rgba(255,143,171,.06);border:1px solid rgba(255,143,171,.28)}
+  .dc-buy .dctag{background:rgba(255,143,171,.14);color:#ff8fab}
+  .matsup{display:inline-flex;align-items:center;margin:2px 7px 2px 0;font-size:11.5px}
+  .matsup .sup{font-size:10px;margin-left:4px;padding:1px 6px;border-radius:10px;background:rgba(245,197,66,.12);border:1px solid rgba(245,197,66,.35);color:var(--gold);text-decoration:none;white-space:nowrap}
+  .matsup .sup:hover{background:rgba(245,197,66,.25)}
+
+  .reviewbox{background:rgba(245,197,66,.06);border:1px solid rgba(245,197,66,.3);border-radius:10px;padding:10px 13px;margin-top:13px}
+  .rolelist{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px}
+  .rolecard{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px}
+  .rolecard .rn{font-weight:700;color:#ffe9a8}
+  .rolecard .ro{color:var(--muted);font-size:10.5px;display:block;margin-top:2px}
+
+  footer{margin-top:24px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:14px;line-height:1.7}
+  code{background:#0c1738;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--public)}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <a href="index.html">📊 资产分类树（5级）</a>
+  <a href="valuation_checklist.html">🧮 估值与风险分析清单</a>
+  <a href="equity_valuation.html" class="active">💹 上市权益·分行业估值</a>
+  <a href="roles_map.html">👥 岗位映射</a>
+  <a href="matrix_view.html">🔀 岗位×资产矩阵</a>
+  <a href="scale_view.html">📈 资产规模</a>
+  <a href="priority_view.html">🎯 分析优先级</a>
+  <a href="procurement_view.html">🛒 数据采购清单</a>
+</div>
+
+<div class="wrap">
+<header>
+  <h1><span class="en">Listed Equity · Sector Valuation</span>上市公司权益 · 分行业估值方法与数据清单</h1>
+</header>
+<p class="sub" id="subtitle"></p>
+<div class="note" id="note"></div>
+
+<!-- 通用框架 -->
+<div class="common open" id="commonCard">
+  <div class="ch" onclick="this.parentElement.classList.toggle('open')">
+    <span class="tw">▶</span>
+    <h3>🧱 上市股票通用估值框架（13 个行业共享的底座）</h3>
+    <span class="hint">点击展开 / 折叠</span>
+  </div>
+  <div class="cb" id="commonBody"></div>
+</div>
+
+<div class="grid" id="content"></div>
+
+<footer>
+  <div>数据文件：<code>equity_valuation_data.js</code>。覆盖 L2「上市公司权益」下 13 个行业板块 + 1 个权益指数/组合产品组。</div>
+  <div>数据获取难度三分类：<span style="color:#5be0c0">公开可获取</span> / <span style="color:#4fb0ff">私有·可合成</span> / <span style="color:#ff8fab">私有·需采购</span>（🛒 标注首选供应商，可跳「数据采购清单」tab）。</div>
+</footer>
+</div>
+
+<script src="equity_valuation_data.js"></script>
+<script>
+const E = window.EQUITY_VAL_DATA;
+document.getElementById('subtitle').textContent = E.subtitle;
+document.getElementById('note').innerHTML =
+  '<b>读法：</b>每个行业先看「首选估值方法」与「为什么这样估」，再看核心驱动/特色指标，最后是按获取难度分类的所需数据。'+
+  '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:14px">'+
+  '<span style="color:#5be0c0">● 公开可获取</span>：'+E.clsDesc.public+
+  ' &nbsp;<span style="color:#4fb0ff">● 私有·可合成</span>：'+E.clsDesc.synth+
+  ' &nbsp;<span style="color:#ff8fab">● 私有·需采购</span>：'+E.clsDesc.buy+
+  '</div>';
+
+function tags(arr,cls){return arr.map(x=>`<span class="tag ${cls}">${x}</span>`).join('');}
+
+// 通用框架体
+const c=E.common;
+document.getElementById('commonBody').innerHTML=`
+  <div class="row"><div class="lbl" style="color:var(--method)"><span class="d" style="background:var(--method)"></span>通用估值方法</div>${tags(c.methods,'method')}</div>
+  <div class="row"><div class="lbl" style="color:var(--driver)"><span class="d" style="background:var(--driver)"></span>通用驱动 / 估值锚</div>${tags(c.drivers,'driver')}</div>
+  <div class="row"><div class="lbl" style="color:var(--public)"><span class="d" style="background:var(--public)"></span>所需数据 · 按获取难度</div>
+    <div class="dclass dc-public"><span class="dctag">公开可获取 · ${c.public.length}</span><span class="dcitems">${c.public.join('、')}</span></div>
+    <div class="dclass dc-synth"><span class="dctag">私有·可合成 · ${c.synth.length}</span><span class="dcitems">${c.synth.join('、')}</span></div>
+    <div class="dclass dc-buy"><span class="dctag">私有·需采购 · ${c.buy.length}</span><span class="dcitems">${c.buy.join('、')}</span></div>
+  </div>`;
+
+// 行业卡
+const content=document.getElementById('content');
+content.innerHTML = E.sectors.map((s,i)=>`
+  <div class="scard${i===0?' open':''}">
+    <div class="sh" onclick="this.parentElement.classList.toggle('open')">
+      <span class="ic">${s.icon}</span>
+      <span class="nm">${s.name}<span class="nt">${s.note}</span></span>
+      <span class="tw">▶</span>
+    </div>
+    <div class="primtags">${s.primary.map(p=>`<span class="pt">${p}</span>`).join('')}</div>
+    <div class="sb">
+      <div class="row"><div class="lbl" style="color:var(--method)"><span class="d" style="background:var(--method)"></span>首选估值方法</div>${tags(s.primary,'prim')}</div>
+      <div class="mnote">💡 ${s.methodNote}</div>
+      <div class="row"><div class="lbl" style="color:var(--driver)"><span class="d" style="background:var(--driver)"></span>核心驱动 / 估值锚</div>${tags(s.drivers,'driver')}</div>
+      <div class="row"><div class="lbl" style="color:var(--special)"><span class="d" style="background:var(--special)"></span>行业特色指标</div>${tags(s.special,'special')}</div>
+      <div class="row"><div class="lbl" style="color:var(--public)"><span class="d" style="background:var(--public)"></span>所需数据 · 按获取难度</div>
+        <div class="dclass dc-public"><span class="dctag">公开 · ${s.public.length}</span><span class="dcitems">${s.public.join('、')}</span></div>
+        <div class="dclass dc-synth"><span class="dctag">可合成 · ${s.synth.length}</span><span class="dcitems">${s.synth.join('、')}</span></div>
+        <div class="dclass dc-buy"><span class="dctag">需采购 · ${s.buy.length}</span><span class="dcitems">${s.buyLinked.map(b=>`<span class="matsup" title="找谁采购：${b.supplier}">${b.name}<a class="sup" href="procurement_view.html">🛒${b.supplier}</a></span>`).join('')}${s.buy.filter(x=>!s.buyLinked.some(b=>b.name===x)).map(x=>`<span class="matsup">${x}</span>`).join('')}</span></div>
+      </div>
+      <div class="reviewbox">
+        <div class="lbl" style="color:var(--role)"><span class="d" style="background:var(--role)"></span>🧑‍💼 找谁 review（推荐岗位）</div>
+        <div class="rolelist">${s.review.map(r=>`<div class="rolecard"><span class="rn">${r.role}</span><span class="ro">${r.org}</span></div>`).join('')}</div>
+      </div>
+    </div>
+  </div>`).join('');
+</script>
+</body>
+</html>
